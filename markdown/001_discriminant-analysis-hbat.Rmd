@@ -1,0 +1,140 @@
+---
+title: 'Discriminant Analysis - HBAT'
+author: "Muhammad Apriandito"
+date: "2/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Install Package
+```{r}
+# Install Library
+install.packages("tidyverse")
+install.packages("caret")
+install.packages("MASS")
+install.packages("tidymodels")
+install.packages("MVN")
+install.packages("biotools")
+install.packages("klaR")
+```
+
+# Load Package
+```{r}
+# Load Package
+library(tidyverse)
+library(caret)
+library(MASS)
+library(tidymodels)
+library(MVN)
+library(biotools)
+library(rrcov)
+library(klaR)
+```
+
+# Import data
+```{r}
+# Import HBAT Data 
+hbat <- read_csv("data/hbat.csv")
+```
+
+# Explore the data 
+```{r}
+# See the data
+hbat
+```
+
+```{r}
+# Check The Data using glimpse
+glimpse(hbat)
+```
+
+# Fix the Data
+```{r}
+# Remove Uneeded Column and Change Variable as Factor
+hbat <- hbat %>%
+  dplyr::select(-X1) %>%
+  mutate(x1 = as_factor(x1))
+```
+
+```{r}
+# Check the data again
+glimpse(hbat)
+```
+
+# Check the Assumption
+```{r}
+# Select performance Variable
+hbat_pp <- hbat %>%
+  dplyr::select(7:19)
+```
+
+```{r}
+# Normality Test | Normal if p-value > 0.05
+normality_test <- mvn(hbat_pp, univariateTest = "SW")
+normality_test$univariateNormality
+```
+
+# Discriminant Analysis
+```{r}
+# Create discrimninant Analysis
+hbat_lda <- lda(x1 ~ x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18, 
+                data = hbat)
+hbat_lda
+```
+
+```{r}
+# Visualize 
+plot(hbat_lda, col = as.integer(hbat$x1))
+```
+
+```{r}
+# Histogram
+plot(hbat_lda, dimen = 1)
+```
+
+```{r}
+# Visualize using Partimate from KlaR
+partimat(x1 ~ x6 + x7 + x8 + x9 + x10 , data=hbat, method="lda")
+```
+
+# Evaluate
+```{r}
+hbat_lda_predict <- train(x1 ~ x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18, method = "lda", data = hbat)
+confusionMatrix(hbat$x1, predict(hbat_lda_predict))
+```
+
+```{r}
+# Prediction
+hbat_lda_values <- predict(hbat_lda)
+df_new <- data.frame(type = hbat$x1, hbat_lda_values$x)
+
+
+ggplot(df_new) + geom_point(aes(x = LD1, y = LD2, colour = type, shape = type), size = 2.5)
+
+```
+
+# Make A prediction
+```{r}
+df_1 <- data.frame("x1" = "None", 
+                   "x6" = 6,
+                   "x7" = 6,
+                   "x8" = 7,
+                   "x9" = 8, 
+                   "x10" = 7, 
+                   "x11"= 7,
+                   "x12" = 8,
+                   "x13" = 6,
+                   "x14" = 4,
+                   "x15" = 5,
+                   "x16" = 6,
+                   "x17" = 8,
+                   "x18" = 1
+                   )
+
+predict(hbat_lda, df_1)
+```
+
+
